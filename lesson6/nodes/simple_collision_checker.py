@@ -102,6 +102,7 @@ class SimpleCollisionChecker:
         with self.lock:
             detected_objects = self.detected_objects
             goal_point = self.goal_point
+            stopline_statuses = self.stopline_statuses
 
         collision_points = np.array([], dtype=DTYPE)
 
@@ -148,7 +149,7 @@ class SimpleCollisionChecker:
 
         # Add stop line collision points for red/yellow traffic lights
         for stop_line_id, stop_line in self.stop_lines.items():
-            if self.stopline_statuses.get(stop_line_id) != StopLineStatus.STATUS_STOP:
+            if stopline_statuses.get(stop_line_id) != StopLineStatus.STATUS_STOP:
                 continue
 
             if local_path_linestring.intersects(stop_line):
