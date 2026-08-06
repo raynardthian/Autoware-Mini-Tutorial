@@ -66,10 +66,28 @@ Your framework from the previous lessons is a simplified one. Remember all limit
 5. Commit and push everything, and be ready to demonstrate your failure cases at the practice session
 
 ##### Failure case 1
-...
+**Scenario**: while the ego is turning right at an intersection, a pedestrian runs straight across its path and collides with the vehicle.
+
+**What happens**: mid-turn, the ego is moving along a curved section of the local path. A pedestrian who was not yet a concern a moment earlier runs into the road and is almost immediately inside the vehicle's path — there is very little time between the pedestrian becoming relevant and the point of impact, and the vehicle does not manage to stop or swerve away in time.
+
+**Why the framework fails**: the collision checker only reacts to objects whose position *already* overlaps the vehicle's path corridor right now — it has no concept of where a moving pedestrian will be a second or two from now, so a person who is running (rather than walking or standing still) closes the remaining distance far faster than the planner's braking assumptions expect. This is made worse during a turn specifically because nothing in the stack slows the vehicle down for the turn itself (see failure case 3's cause) — so the ego may already be entering the turn faster than it should be, leaving even less margin to react to a sudden pedestrian than it would have going straight. The combination of "no anticipation of fast-moving pedestrians" and "no speed reduction for turns" is what turns a survivable situation into a collision.
+
+**Recommended fix**: give the planner a short-term prediction of where nearby pedestrians and vehicles are heading, based on their current speed and direction, and treat a predicted future overlap with the path as a collision point too — not just an overlap happening right now. This would let the vehicle start slowing down as soon as a fast-moving pedestrian is heading toward its path, instead of waiting until they are already in the way. Combined with slowing the vehicle down through turns in general, this would give it enough distance and time to stop safely.
 
 ##### Failure case 2
-...
+**Scenario**: the ego drives straight through an intersection while its traffic light is red.
+
+**What happens**: the vehicle approaches a red light at normal speed and does not slow down or stop, driving straight through the intersection as if the light were green.
+
+**Why the framework fails**: the vehicle only ever stops for a traffic light when the light has been positively confirmed as red — any other outcome (light not detected, detection confidence too low to match, camera view briefly blocked, or a light incorrectly classified as green/unknown) is treated exactly the same as "no restriction at all." There is no in-between state. So the moment the camera-based detection fails to confidently report red — for whatever reason — the vehicle has no fallback behavior and simply proceeds as though the intersection is clear.
+
+**Recommended fix**: make the fallback behavior cautious instead of permissive. If the status of an upcoming traffic light is ever missing, uncertain, or simply hasn't been confirmed as green while the vehicle is approaching it, the vehicle should slow down or come to a stop by default, and only proceed once the light has been clearly and positively identified as green. Right now the framework effectively assumes "green unless proven red," when it should assume the opposite — "not clear to go unless proven green."
 
 ##### Failure case 3
-...
+**Scenario**: a bus in the lane next to the ego suddenly merges into the ego's lane, and the two vehicles collide.
+
+**What happens**: the bus is initially driving alongside the ego in a neighboring lane, not directly in its path. It then changes lanes into the ego's lane, and by the time it is actually inside the ego's path, there isn't enough distance left for the ego to brake or steer away in time.
+
+**Why the framework fails**: the vehicle only pays attention to its own lane — it checks for obstacles inside a narrow corridor directly around its intended path, and has no awareness at all of vehicles in neighboring lanes that could merge in. A human driver keeps half an eye on vehicles beside them, especially ones that seem to be drifting toward their lane, and would already be easing off the accelerator before the bus fully committed to the lane change. Our framework has no equivalent — a neighboring vehicle simply doesn't exist to the planner until it has already crossed into the ego's own narrow corridor, at which point it may be too late to react.
+
+**Recommended fix**: widen the area the vehicle pays attention to beyond just its own lane — monitor a broader zone that includes neighboring lanes, and treat a vehicle that is drifting or angled toward the ego's lane as an early warning sign, even before it has fully crossed over. This would let the vehicle start slowing or creating space as soon as another vehicle looks like it might merge in, rather than only reacting once the merge is already complete.
