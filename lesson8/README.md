@@ -79,9 +79,9 @@ Your framework from the previous lessons is a simplified one. Remember all limit
 
 **What happens**: the vehicle approaches a red light at normal speed and does not slow down or stop, driving straight through the intersection as if the light were green.
 
-**Why the framework fails**: the vehicle only ever stops for a traffic light when the light has been positively confirmed as red — any other outcome (light not detected, detection confidence too low to match, camera view briefly blocked, or a light incorrectly classified as green/unknown) is treated exactly the same as "no restriction at all." There is no in-between state. So the moment the camera-based detection fails to confidently report red — for whatever reason — the vehicle has no fallback behavior and simply proceeds as though the intersection is clear.
+**Why the framework fails**: the vehicle only ever stops for a traffic light when the light has been positively confirmed as red. So the moment the camera-based detection fails to confidently report red — for whatever reason — the vehicle has no fallback behavior and simply proceeds as though the intersection is clear.
 
-**Recommended fix**: make the fallback behavior cautious instead of permissive. If the status of an upcoming traffic light is ever missing, uncertain, or simply hasn't been confirmed as green while the vehicle is approaching it, the vehicle should slow down or come to a stop by default, and only proceed once the light has been clearly and positively identified as green. Right now the framework effectively assumes "green unless proven red," when it should assume the opposite — "not clear to go unless proven green."
+**Recommended fix**: Add better blinking-light detection to the traffic light detector, so it can recognize when a green light starts blinking — the usual warning phase before it turns red — instead of only classifying it as plain green. Once a blinking green is detected, the vehicle should start slowing down right away, the same way a human driver eases off as soon as they notice a light has started flashing, well before it actually turns red.
 
 ##### Failure case 3
 **Scenario**: a bus in the lane next to the ego suddenly merges into the ego's lane, and the two vehicles collide.
